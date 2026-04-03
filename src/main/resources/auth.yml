@@ -1,0 +1,46 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1/auth
+
+spring:
+  application:
+    name: auth-service
+
+  datasource:
+    url: ${DB_URL}                        # K8s ConfigMap
+    username: ${DB_USERNAME}              # K8s Secret
+    password: ${DB_PASSWORD}              # K8s Secret
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  data:
+    redis:
+      host: ${REDIS_HOST}                 # K8s ConfigMap
+      port: ${REDIS_PORT:6379}            # K8s ConfigMap  (default: 6379)
+      password: ${REDIS_PASSWORD}         # K8s Secret
+
+auth:
+  jwt:
+    secret: ${JWT_SECRET}                                           # K8s Secret
+    access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}        # K8s ConfigMap (default: 15m)
+    refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}   # K8s ConfigMap (default: 7d)
+
+logging:
+  level:
+    root: INFO
+    io.github.nct682000: INFO
+    org.flywaydb: INFO

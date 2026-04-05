@@ -1,7 +1,9 @@
 package io.github.nct682000.authservice.controller;
 
 import io.github.nct682000.authservice.dto.APIResponse;
+import io.github.nct682000.authservice.dto.request.LoginRequestDTO;
 import io.github.nct682000.authservice.dto.request.RegisterRequestDTO;
+import io.github.nct682000.authservice.dto.response.LoginResponseDTO;
 import io.github.nct682000.authservice.dto.response.UserProfileResponseDTO;
 import io.github.nct682000.authservice.enumeration.ResponseCode;
 import io.github.nct682000.authservice.exception.AuthException;
@@ -32,6 +34,21 @@ public class AuthController {
                 .body(APIResponse.<UserProfileResponseDTO>builder()
                         .code(ResponseCode.REGISTER_SUCCESS.getCode())
                         .message(ResponseCode.REGISTER_SUCCESS.getMean())
+                        .data(data)
+                        .isSuccess(true)
+                        .build());
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<APIResponse<LoginResponseDTO>> login(
+            @Valid @RequestBody LoginRequestDTO request) {
+
+        LoginResponseDTO data = authService.login(request);
+
+        return ResponseEntity.ok(
+                APIResponse.<LoginResponseDTO>builder()
+                        .code(ResponseCode.LOGIN_SUCCESS.getCode())
+                        .message(ResponseCode.LOGIN_SUCCESS.getMean())
                         .data(data)
                         .isSuccess(true)
                         .build());

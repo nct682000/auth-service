@@ -7,6 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AccountExpiredException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.CredentialsExpiredException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,6 +38,36 @@ public class GlobalExceptionHandler {
     public ResponseEntity<APIResponse<?>> handleAuthException(AuthException ex) {
         log.warn("Auth error [{}]: {}", ex.getResponseCode(), ex.getMessage());
         return buildErrorResponse(ex.getResponseCode().getCode(), ex.getMessage(), ex.getResponseCode().getHttpStatus());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<APIResponse<?>> handleBadCredentials(BadCredentialsException ex) {
+        log.warn("Bad credentials: {}", ex.getMessage());
+        return buildErrorResponse(ResponseCode.INVALID_CREDENTIALS.getCode(), ResponseCode.INVALID_CREDENTIALS.getMean(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<APIResponse<?>> handleLocked(LockedException ex) {
+        log.warn("Account locked: {}", ex.getMessage());
+        return buildErrorResponse(ResponseCode.ACCOUNT_LOCKED.getCode(), ResponseCode.ACCOUNT_LOCKED.getMean(), HttpStatus.LOCKED);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<APIResponse<?>> handleDisabled(DisabledException ex) {
+        log.warn("Account disabled: {}", ex.getMessage());
+        return buildErrorResponse(ResponseCode.ACCOUNT_DISABLED.getCode(), ResponseCode.ACCOUNT_DISABLED.getMean(), HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(AccountExpiredException.class)
+    public ResponseEntity<APIResponse<?>> handleAccountExpired(AccountExpiredException ex) {
+        log.warn("Account expired: {}", ex.getMessage());
+        return buildErrorResponse(ResponseCode.ACCOUNT_EXPIRED.getCode(), ResponseCode.ACCOUNT_EXPIRED.getMean(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(CredentialsExpiredException.class)
+    public ResponseEntity<APIResponse<?>> handleCredentialsExpired(CredentialsExpiredException ex) {
+        log.warn("Credentials expired: {}", ex.getMessage());
+        return buildErrorResponse(ResponseCode.CREDENTIALS_EXPIRED.getCode(), ResponseCode.CREDENTIALS_EXPIRED.getMean(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AuthenticationException.class)

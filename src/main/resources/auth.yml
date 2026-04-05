@@ -15,6 +15,7 @@ spring:
 
   jpa:
     show-sql: false
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
@@ -40,6 +41,8 @@ auth:
     refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}   # K8s ConfigMap (default: 7d)
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-no-trace}] %-5level %-40.40logger{39} : %msg%n"
   level:
     root: INFO
     io.github.nct682000: INFO

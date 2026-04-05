@@ -15,9 +15,11 @@ import org.springframework.util.ObjectUtils;
 public class AuthUserDetails implements UserDetails {
     private UUID userId;
     private String username;
+    private String email;
     private String password;
     private Collection<? extends GrantedAuthority> authorities;
     private UserStatus status;
+    private Integer tokenVersion;
     private LocalDateTime accountExpiredAt;
     private LocalDateTime credentialsExpiredAt;
 

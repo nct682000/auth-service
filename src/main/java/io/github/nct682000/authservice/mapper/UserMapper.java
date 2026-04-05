@@ -16,9 +16,11 @@ public class UserMapper {
         return new AuthUserDetails(
                 user.getId(),
                 user.getUsername(),
+                user.getEmail(),
                 user.getPassword(),
                 authorities,
                 user.getStatus(),
+                user.getTokenVersion(),
                 user.getAccountExpiredAt(),
                 user.getCredentialsExpiredAt()
         );

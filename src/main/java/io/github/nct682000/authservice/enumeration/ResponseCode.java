@@ -16,6 +16,7 @@ public enum ResponseCode {
     PASSWORD_CHANGED("AUTH-006-200", "Password changed successfully", HttpStatus.OK),
     PASSWORD_RESET_OTP_SENT("AUTH-007-200", "OTP sent to your email", HttpStatus.OK),
     PASSWORD_RESET_SUCCESS("AUTH-008-200", "Password reset successfully", HttpStatus.OK),
+    GET_PROFILE_SUCCESS("AUTH-025-200", "User profile retrieved successfully", HttpStatus.OK),
 
     // ===== Auth — failure =====
     INVALID_CREDENTIALS("AUTH-009-401", "Invalid username or password", HttpStatus.UNAUTHORIZED),

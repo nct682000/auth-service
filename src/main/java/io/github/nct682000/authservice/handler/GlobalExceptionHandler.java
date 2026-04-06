@@ -30,61 +30,61 @@ public class GlobalExceptionHandler {
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .orElse("Invalid request");
 
-        log.warn("Validation failed: {}", message);
+        log.info("Validation failed [400]: {}", message);
         return buildErrorResponse(ResponseCode.VALIDATION_ERROR.getCode(), message, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(AuthException.class)
     public ResponseEntity<APIResponse<?>> handleAuthException(AuthException ex) {
-        log.warn("Auth error [{}]: {}", ex.getResponseCode(), ex.getMessage());
+        log.info("Auth error [{}]: {}", ex.getResponseCode().getCode(), ex.getMessage());
         return buildErrorResponse(ex.getResponseCode().getCode(), ex.getMessage(), ex.getResponseCode().getHttpStatus());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<APIResponse<?>> handleBadCredentials(BadCredentialsException ex) {
-        log.warn("Bad credentials: {}", ex.getMessage());
+        log.info("Bad credentials [401]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.INVALID_CREDENTIALS.getCode(), ResponseCode.INVALID_CREDENTIALS.getMean(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(LockedException.class)
     public ResponseEntity<APIResponse<?>> handleLocked(LockedException ex) {
-        log.warn("Account locked: {}", ex.getMessage());
+        log.info("Account locked [423]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.ACCOUNT_LOCKED.getCode(), ResponseCode.ACCOUNT_LOCKED.getMean(), HttpStatus.LOCKED);
     }
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<APIResponse<?>> handleDisabled(DisabledException ex) {
-        log.warn("Account disabled: {}", ex.getMessage());
+        log.info("Account disabled [403]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.ACCOUNT_DISABLED.getCode(), ResponseCode.ACCOUNT_DISABLED.getMean(), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(AccountExpiredException.class)
     public ResponseEntity<APIResponse<?>> handleAccountExpired(AccountExpiredException ex) {
-        log.warn("Account expired: {}", ex.getMessage());
+        log.info("Account expired [401]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.ACCOUNT_EXPIRED.getCode(), ResponseCode.ACCOUNT_EXPIRED.getMean(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(CredentialsExpiredException.class)
     public ResponseEntity<APIResponse<?>> handleCredentialsExpired(CredentialsExpiredException ex) {
-        log.warn("Credentials expired: {}", ex.getMessage());
+        log.info("Credentials expired [401]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.CREDENTIALS_EXPIRED.getCode(), ResponseCode.CREDENTIALS_EXPIRED.getMean(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<APIResponse<?>> handleAuthenticationException(AuthenticationException ex) {
-        log.warn("Authentication failed: {}", ex.getMessage());
+        log.info("Authentication failed [401]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.INVALID_CREDENTIALS.getCode(), ex.getMessage(), HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<APIResponse<?>> handleAccessDeniedException(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
+        log.info("Access denied [403]: {}", ex.getMessage());
         return buildErrorResponse(ResponseCode.PERMISSION_DENIED.getCode(), ex.getMessage(), HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIResponse<?>> handleException(Exception ex) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        log.error("Unexpected error [500]: {}", ex.getMessage(), ex);
         return buildErrorResponse(ResponseCode.INTERNAL_SERVER_ERROR.getCode(), "An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

@@ -2,6 +2,8 @@ package io.github.nct682000.authservice.service;
 
 import io.github.nct682000.authservice.config.JwtConfig;
 import io.github.nct682000.authservice.dto.request.LoginRequestDTO;
+import io.github.nct682000.authservice.dto.request.LogoutRequestDTO;
+import io.github.nct682000.authservice.dto.request.RefreshTokenRequestDTO;
 import io.github.nct682000.authservice.dto.request.RegisterRequestDTO;
 import io.github.nct682000.authservice.dto.response.LoginResponseDTO;
 import io.github.nct682000.authservice.dto.response.UserProfileResponseDTO;
@@ -13,8 +15,12 @@ import io.github.nct682000.authservice.enumeration.RoleEnum;
 import io.github.nct682000.authservice.enumeration.UserStatus;
 import io.github.nct682000.authservice.exception.AuthException;
 import io.github.nct682000.authservice.exception.EmailAlreadyExistsException;
+import io.github.nct682000.authservice.exception.InvalidTokenException;
+import io.github.nct682000.authservice.exception.RevokedTokenException;
 import io.github.nct682000.authservice.exception.RoleNotFoundException;
+import io.github.nct682000.authservice.exception.UserNotFoundException;
 import io.github.nct682000.authservice.exception.UsernameAlreadyExistsException;
+import io.github.nct682000.authservice.mapper.UserMapper;
 import io.github.nct682000.authservice.repository.RoleRepository;
 import io.github.nct682000.authservice.repository.UserRepository;
 import io.github.nct682000.authservice.service.JwtService.RefreshTokenResult;
@@ -44,8 +50,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public UserProfileResponseDTO register(RegisterRequestDTO request)
-            throws AuthException {
+    public UserProfileResponseDTO register(RegisterRequestDTO request) throws AuthException {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new UsernameAlreadyExistsException();
         }
@@ -94,5 +99,52 @@ public class AuthService {
                 .refreshToken(refreshResult.token())
                 .expiresIn(jwtConfig.getAccessTokenExpiration() / 1000)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResponseDTO refresh(RefreshTokenRequestDTO request) throws AuthException {
+        AuthClaims authClaims = jwtService.parseToken(request.getRefreshToken())
+                .orElseThrow(InvalidTokenException::new);
+
+        // Verify the token hasn't been revoked (still exists in Redis)
+        redisService.getRefreshToken(authClaims.userId(), authClaims.tokenId())
+                .orElseThrow(RevokedTokenException::new);
+
+        // Load user from DB (picks up any status/role/version changes)
+        User user = userRepository.findById(authClaims.userId())
+                .orElseThrow(UserNotFoundException::new);
+
+        AuthUserDetails userDetails = UserMapper.toUserDetails(user);
+
+        // Token rotation: invalidate old, issue new pair
+        redisService.deleteRefreshToken(authClaims.userId(), authClaims.tokenId());
+        String newAccessToken = jwtService.generateAccessToken(userDetails);
+        RefreshTokenResult newRefresh = jwtService.generateRefreshToken(userDetails);
+        redisService.saveRefreshToken(
+                authClaims.userId(), newRefresh.tokenId(), newRefresh.token(),
+                Duration.ofMillis(jwtConfig.getRefreshTokenExpiration())
+        );
+
+        log.info("Token refreshed for user: {}", userDetails.getUsername());
+        return LoginResponseDTO.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefresh.token())
+                .expiresIn(jwtConfig.getAccessTokenExpiration() / 1000)
+                .build();
+    }
+
+    public void logout(LogoutRequestDTO request, AuthUserDetails currentUser) throws AuthException {
+        AuthClaims authClaims = jwtService.parseToken(request.getRefreshToken())
+                .orElseThrow(InvalidTokenException::new);
+
+        redisService.deleteRefreshToken(currentUser.getUserId(), authClaims.tokenId());
+        log.info("User logged out: {}", currentUser.getUsername());
+    }
+
+    @Transactional
+    public void logoutAll(AuthUserDetails currentUser) {
+        redisService.deleteAllRefreshTokens(currentUser.getUserId());
+        userRepository.incrementTokenVersion(currentUser.getUserId());
+        log.info("All sessions revoked for user: {}", currentUser.getUsername());
     }
 }

@@ -34,7 +34,7 @@ public class RedisService {
 
     public void deleteAllRefreshTokens(UUID userId) {
         Set<String> keys = redisTemplate.keys(REFRESH_TOKEN_PREFIX + ":" + userId + ":*");
-        if (keys != null && !keys.isEmpty()) {
+        if (!keys.isEmpty()) {
             redisTemplate.delete(keys);
         }
     }

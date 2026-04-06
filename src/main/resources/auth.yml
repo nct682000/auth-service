@@ -13,6 +13,9 @@ spring:
     password: ${DB_PASSWORD}              # K8s Secret
     driver-class-name: org.postgresql.Driver
 
+  jackson:
+    time-zone: UTC
+
   jpa:
     show-sql: false
     open-in-view: false
@@ -21,6 +24,8 @@ spring:
     properties:
       hibernate:
         globally_quoted_identifiers: true
+        jdbc:
+          time_zone: UTC
 
   flyway:
     enabled: true

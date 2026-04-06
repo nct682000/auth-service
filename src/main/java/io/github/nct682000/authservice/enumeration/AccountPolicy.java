@@ -2,6 +2,7 @@ package io.github.nct682000.authservice.enumeration;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import org.springframework.util.ObjectUtils;
 
 /**
  * Defines standard account and credential expiry policies.
@@ -33,6 +34,6 @@ public enum AccountPolicy {
      * or null if this policy has no expiry.
      */
     public LocalDateTime expiresAt() {
-        return duration == null ? null : LocalDateTime.now().plus(duration);
+        return ObjectUtils.isEmpty(duration) ? null : LocalDateTime.now().plus(duration);
     }
 }

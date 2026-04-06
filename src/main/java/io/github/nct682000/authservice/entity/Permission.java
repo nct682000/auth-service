@@ -5,9 +5,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "permission")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 public class Permission extends BaseEntity {

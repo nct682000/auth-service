@@ -10,9 +10,11 @@ import jakarta.persistence.Table;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "role")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 public class Role extends BaseEntity {

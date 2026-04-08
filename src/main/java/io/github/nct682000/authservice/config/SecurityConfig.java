@@ -1,12 +1,12 @@
 package io.github.nct682000.authservice.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import io.github.nct682000.authservice.dto.APIResponse;
 import io.github.nct682000.authservice.enumeration.ResponseCode;
 import io.github.nct682000.authservice.filter.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -23,6 +23,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.io.IOException;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -30,6 +32,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final ObjectMapper objectMapper;
+    private final MessageSource messageSource;
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/register",
@@ -70,11 +73,18 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    /**
+     * Security filter handlers run before Spring MVC sets LocaleContextHolder,
+     * so we resolve the locale directly from the servlet request (which reads
+     * the Accept-Language header per the servlet spec).
+     */
     private AuthenticationEntryPoint authenticationEntryPoint() {
         return (request, response, ex) -> {
+            String message = messageSource.getMessage(
+                    ResponseCode.TOKEN_INVALID.getMessageKey(), null, request.getLocale());
             APIResponse<?> body = APIResponse.builder()
                     .code(ResponseCode.TOKEN_INVALID.getCode())
-                    .message(ex.getMessage())
+                    .message(message)
                     .build();
             writeResponse(response, HttpServletResponse.SC_UNAUTHORIZED, body);
         };
@@ -82,9 +92,11 @@ public class SecurityConfig {
 
     private AccessDeniedHandler accessDeniedHandler() {
         return (request, response, ex) -> {
+            String message = messageSource.getMessage(
+                    ResponseCode.PERMISSION_DENIED.getMessageKey(), null, request.getLocale());
             APIResponse<?> body = APIResponse.builder()
                     .code(ResponseCode.PERMISSION_DENIED.getCode())
-                    .message(ex.getMessage())
+                    .message(message)
                     .build();
             writeResponse(response, HttpServletResponse.SC_FORBIDDEN, body);
         };

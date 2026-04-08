@@ -13,6 +13,11 @@ spring:
     password: ${DB_PASSWORD}              # K8s Secret
     driver-class-name: org.postgresql.Driver
 
+  messages:
+    basename: messages
+    encoding: UTF-8
+    use-code-as-default-message: false
+
   jackson:
     time-zone: UTC
 

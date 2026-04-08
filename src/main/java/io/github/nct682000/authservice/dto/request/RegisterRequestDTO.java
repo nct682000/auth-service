@@ -8,15 +8,15 @@ import lombok.Data;
 @Data
 public class RegisterRequestDTO {
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+    @NotBlank(message = "{auth.validation.username.required}")
+    @Size(min = 3, max = 50, message = "{auth.validation.username.size}")
     private String username;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email is not valid")
+    @NotBlank(message = "{auth.validation.email.required}")
+    @Email(message = "{auth.validation.email.invalid}")
     private String email;
 
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @NotBlank(message = "{auth.validation.password.required}")
+    @Size(min = 8, message = "{auth.validation.password.size}")
     private String password;
 }

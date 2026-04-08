@@ -11,6 +11,7 @@ import io.github.nct682000.authservice.entity.AuthUserDetails;
 import io.github.nct682000.authservice.enumeration.ResponseCode;
 import io.github.nct682000.authservice.exception.AuthException;
 import io.github.nct682000.authservice.service.AuthService;
+import io.github.nct682000.authservice.service.MessageResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final MessageResolver messageResolver;
 
     @PostMapping("/register")
     public ResponseEntity<APIResponse<UserProfileResponseDTO>> register(
@@ -37,7 +39,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(APIResponse.<UserProfileResponseDTO>builder()
                         .code(ResponseCode.REGISTER_SUCCESS.getCode())
-                        .message(ResponseCode.REGISTER_SUCCESS.getMean())
+                        .message(messageResolver.resolve(ResponseCode.REGISTER_SUCCESS))
                         .data(data)
                         .isSuccess(true)
                         .build());
@@ -52,7 +54,7 @@ public class AuthController {
         return ResponseEntity.ok(
                 APIResponse.<LoginResponseDTO>builder()
                         .code(ResponseCode.LOGIN_SUCCESS.getCode())
-                        .message(ResponseCode.LOGIN_SUCCESS.getMean())
+                        .message(messageResolver.resolve(ResponseCode.LOGIN_SUCCESS))
                         .data(data)
                         .isSuccess(true)
                         .build());
@@ -67,7 +69,7 @@ public class AuthController {
         return ResponseEntity.ok(
                 APIResponse.<LoginResponseDTO>builder()
                         .code(ResponseCode.TOKEN_REFRESHED.getCode())
-                        .message(ResponseCode.TOKEN_REFRESHED.getMean())
+                        .message(messageResolver.resolve(ResponseCode.TOKEN_REFRESHED))
                         .data(data)
                         .isSuccess(true)
                         .build());
@@ -83,7 +85,7 @@ public class AuthController {
         return ResponseEntity.ok(
                 APIResponse.<Void>builder()
                         .code(ResponseCode.LOGOUT_SUCCESS.getCode())
-                        .message(ResponseCode.LOGOUT_SUCCESS.getMean())
+                        .message(messageResolver.resolve(ResponseCode.LOGOUT_SUCCESS))
                         .isSuccess(true)
                         .build());
     }
@@ -97,7 +99,7 @@ public class AuthController {
         return ResponseEntity.ok(
                 APIResponse.<Void>builder()
                         .code(ResponseCode.LOGOUT_SUCCESS.getCode())
-                        .message(ResponseCode.LOGOUT_SUCCESS.getMean())
+                        .message(messageResolver.resolve(ResponseCode.LOGOUT_SUCCESS))
                         .isSuccess(true)
                         .build());
     }

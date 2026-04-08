@@ -9,7 +9,7 @@ public class AuthException extends Exception {
     private final ResponseCode responseCode;
 
     public AuthException(ResponseCode responseCode) {
-        super(responseCode.getMean());
+        super(responseCode.getMessageKey());
         this.responseCode = responseCode;
     }
 

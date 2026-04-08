@@ -37,9 +37,14 @@ Most auth implementations either cut corners on security or over-engineer to the
 | `POST /logout` | Revoke current session's refresh token from Redis |
 | `POST /logout-all` | Bump `token_version` — invalidates every active session across all devices |
 | `POST /refresh` | Exchange refresh token for a new access token (with rotation) |
-| `PUT /change-password` | Requires current password — bumps token version on success |
-| `POST /forgot-password` | Generates a short-lived OTP, sends via email |
-| `POST /reset-password` | Validates OTP, sets new password, invalidates all sessions |
+| `PUT /change-password` | _(planned)_ Requires current password — bumps token version on success |
+| `POST /forgot-password` | _(planned)_ Generates a short-lived OTP, sends via email |
+| `POST /reset-password` | _(planned)_ Validates OTP, sets new password, invalidates all sessions |
+
+### User API
+| Endpoint | Auth | Description |
+|---|---|---|
+| `GET /users/me` | Required | Returns the current authenticated user's profile — id, username, email, status, roles, joined date |
 
 ### Authorization — RBAC
 Three-level hierarchy: **User → Role → Permission**
@@ -57,7 +62,7 @@ Permissions are embedded in the JWT payload so downstream services can make auth
 | `LOCKED` | Auto-locked after too many failed login attempts |
 | `DISABLED` | Manually disabled by an admin |
 
-### Admin API
+### Admin API _(planned)_
 Full RBAC management behind `ADMIN_PANEL` permission:
 - Manage users, roles, and permissions
 - Lock / unlock / disable accounts
@@ -72,7 +77,7 @@ Full RBAC management behind `ADMIN_PANEL` permission:
 - **Refresh token** — long-lived (7 days), stored in Redis with TTL, revoked on logout
 - **Token versioning** — `token_version` is embedded in every access token. Bumping the version (on logout-all or password change) immediately invalidates all existing tokens, without a blocklist
 
-### Brute-Force Protection
+### Brute-Force Protection _(planned)_
 - Failed login attempts tracked in Redis per username with a rolling TTL window
 - Account auto-locked after a configurable threshold (default: 5 attempts / 15 min)
 - Configurable via `application.yml` — no code changes required
@@ -82,7 +87,7 @@ Full RBAC management behind `ADMIN_PANEL` permission:
 - Passwords are never stored, logged, or returned in any response
 - OTPs are BCrypt-hashed before storage in Redis and are single-use
 
-### Audit Logging
+### Audit Logging _(planned)_
 Every security event (login success/failure, logout, password change, token refresh) is logged with timestamp, IP address, and user agent — async, to never add latency to the request path.
 
 ### Request Tracing
@@ -146,7 +151,7 @@ The service starts on `http://localhost:8080` with context path `/api/v1/auth`.
 ./mvnw test
 ```
 
-Integration tests use **Testcontainers** — they spin up real PostgreSQL and Redis containers automatically. No manual setup required.
+> Test suite is planned for Phase 7 — unit tests with Mockito and integration tests with Testcontainers (real PostgreSQL + Redis).
 
 ---
 
@@ -155,21 +160,21 @@ Integration tests use **Testcontainers** — they spin up real PostgreSQL and Re
 ```
 src/main/java/.../authservice/
 ├── config/          # SecurityConfig, JwtConfig, RedisConfig
-├── controller/      # AuthController, UserController, AdminController
-├── service/         # AuthService, JwtService, RedisService, UserService
+├── controller/      # AuthController, UserController
+├── service/         # AuthService, JwtService, RedisService, UserService, UserDetailsServiceImpl, AuthClaims
 ├── filter/          # JwtAuthenticationFilter, RequestLoggingFilter
 ├── handler/         # GlobalExceptionHandler
 ├── entity/          # User, Role, Permission, BaseEntity, AuthUserDetails
-├── repository/      # UserRepository, RoleRepository, PermissionRepository
+├── repository/      # UserRepository, RoleRepository
 ├── dto/
-│   ├── request/     # LoginRequestDTO, RegisterRequestDTO, ...
-│   └── response/    # LoginResponseDTO, UserProfileResponseDTO, ...
+│   ├── request/     # LoginRequestDTO, RegisterRequestDTO, RefreshTokenRequestDTO, LogoutRequestDTO
+│   └── response/    # LoginResponseDTO, UserProfileResponseDTO
 ├── mapper/          # UserMapper
 ├── enumeration/     # UserStatus, ResponseCode, AccountPolicy, RoleEnum
-└── exception/       # AuthException hierarchy
+└── exception/       # AuthException, InvalidTokenException, RevokedTokenException, UserNotFoundException, ...
 
 src/main/resources/
-├── db/migration/    # Flyway SQL (V1 → schema, V2 → mappings, V3 → FKs, V4 → indexes, V5 → seed)
+├── db/migration/    # Flyway SQL (V1 → schema, V2 → mappings, V3 → FKs, V4 → indexes, V5 → seed, V6 → soft-delete indexes)
 └── auth.yml         # Application config (all secrets via env vars)
 
 docker/
@@ -228,9 +233,9 @@ Intentionally excluded to keep the service focused:
 
 - [x] Phase 1 — Foundation & configuration
 - [x] Phase 2 — Register + Login
-- [ ] Phase 3 — Token lifecycle (refresh, logout, logout-all)
-- [ ] Phase 4 — Security hardening (brute-force, audit log, password reset)
-- [ ] Phase 5 — User & Admin APIs
+- [x] Phase 3 — Token lifecycle (refresh, logout, logout-all)
+- [ ] Phase 4 — User & Admin APIs (GET /users/me done)
+- [ ] Phase 5 — Security hardening (brute-force, audit log, password reset)
 - [ ] Phase 6 — Swagger / OpenAPI documentation
 - [ ] Phase 7 — Test suite (unit + integration with Testcontainers)
 - [ ] Phase 8 — Final polish & K8s manifests

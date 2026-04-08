@@ -5,6 +5,7 @@ import io.github.nct682000.authservice.dto.response.UserProfileResponseDTO;
 import io.github.nct682000.authservice.entity.AuthUserDetails;
 import io.github.nct682000.authservice.enumeration.ResponseCode;
 import io.github.nct682000.authservice.exception.AuthException;
+import io.github.nct682000.authservice.service.MessageResolver;
 import io.github.nct682000.authservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
     private final UserService userService;
+    private final MessageResolver messageResolver;
 
     @GetMapping("/me")
     public ResponseEntity<APIResponse<UserProfileResponseDTO>> getMe(
@@ -29,7 +31,7 @@ public class UserController {
         return ResponseEntity.ok(
                 APIResponse.<UserProfileResponseDTO>builder()
                         .code(ResponseCode.GET_PROFILE_SUCCESS.getCode())
-                        .message(ResponseCode.GET_PROFILE_SUCCESS.getMean())
+                        .message(messageResolver.resolve(ResponseCode.GET_PROFILE_SUCCESS))
                         .data(data)
                         .isSuccess(true)
                         .build());

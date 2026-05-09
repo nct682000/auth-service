@@ -1,5 +1,6 @@
 package io.github.nct682000.authservice.dto.response;
 
+import io.github.nct682000.authservice.entity.Role;
 import io.github.nct682000.authservice.entity.User;
 import io.github.nct682000.authservice.enumeration.UserStatus;
 import lombok.Builder;
@@ -28,7 +29,7 @@ public class UserProfileResponseDTO {
                 .email(user.getEmail())
                 .status(user.getStatus())
                 .roles(user.getRoles().stream()
-                        .map(role -> role.getName())
+                        .map(Role::getName)
                         .collect(Collectors.toSet()))
                 .createdAt(user.getCreatedAt())
                 .build();

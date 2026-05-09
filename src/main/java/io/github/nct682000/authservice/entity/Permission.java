@@ -15,4 +15,7 @@ import org.hibernate.annotations.SQLRestriction;
 public class Permission extends BaseEntity {
     @Column(unique = true, nullable = false)
     private String name;
+
+    @Column(length = 255)
+    private String description;
 }

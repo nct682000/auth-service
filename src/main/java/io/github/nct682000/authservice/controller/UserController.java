@@ -9,6 +9,7 @@ import io.github.nct682000.authservice.service.MessageResolver;
 import io.github.nct682000.authservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +24,7 @@ public class UserController {
     private final MessageResolver messageResolver;
 
     @GetMapping("/me")
+    @PreAuthorize("hasAuthority('profile:read:own')")
     public ResponseEntity<APIResponse<UserProfileResponseDTO>> getMe(
             @AuthenticationPrincipal AuthUserDetails currentUser) throws AuthException {
 

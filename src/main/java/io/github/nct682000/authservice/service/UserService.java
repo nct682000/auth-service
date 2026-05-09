@@ -19,6 +19,6 @@ public class UserService {
     public UserProfileResponseDTO getMe(AuthUserDetails currentUser) throws AuthException {
         return userRepository.findById(currentUser.getUserId())
                 .map(UserProfileResponseDTO::from)
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> new UserNotFoundException(currentUser.getUserId().toString()));
     }
 }

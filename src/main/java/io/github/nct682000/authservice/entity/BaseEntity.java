@@ -7,6 +7,7 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -40,5 +41,18 @@ public abstract class BaseEntity {
     @PreUpdate
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (Objects.isNull(id)) return false;
+        if (!(o instanceof BaseEntity other)) return false;
+        return id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.isNull(id) ? 0 : id.hashCode();
     }
 }

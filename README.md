@@ -46,7 +46,21 @@ Most auth implementations either cut corners on security or over-engineer to the
 |---|---|---|
 | `GET /users/me` | Required | Returns the current authenticated user's profile — id, username, email, status, roles, joined date |
 
+### Internationalization (i18n)
+All API responses (`message` field) and Bean Validation error messages are fully localized. Language is resolved from the `Accept-Language` request header. Supported locales: **English** (default), **Vietnamese**.
+
+```http
+Accept-Language: vi
+→ { "message": "Đăng nhập thành công" }
+
+Accept-Language: en
+→ { "message": "Login successful" }
+```
+
+Unsupported locales fall back to English automatically.
+
 ### Authorization — RBAC
+
 Three-level hierarchy: **User → Role → Permission**
 
 ```
@@ -55,18 +69,69 @@ User ──< user_role >── Role ──< role_permission >── Permission
 
 Permissions are embedded in the JWT payload so downstream services can make authorization decisions without a database call.
 
+#### Permission Naming Convention
+
+All permissions follow the `resource:action:scope` format:
+
+| Segment | Values | Meaning |
+|---|---|---|
+| `resource` | `profile`, `role`, `permission` | What is being acted on |
+| `action` | `read`, `write`, `delete`, `manage` | What operation is performed |
+| `scope` | `own`, `all` | Own resources only, or all resources |
+
+#### Permission Matrix
+
+| Permission | `user` role | `admin` role | Description |
+|---|:---:|:---:|---|
+| `profile:read:own` | ✓ | ✓ | Read own profile |
+| `profile:write:own` | ✓ | ✓ | Edit own profile |
+| `profile:delete:own` | ✓ | ✓ | Delete own account |
+| `profile:read:all` | | ✓ | Read any user's profile |
+| `profile:write:all` | | ✓ | Edit any user's profile or status |
+| `role:manage` | | ✓ | Create, delete, and assign roles |
+| `permission:manage` | | ✓ | Create, delete, and assign permissions |
+
+#### Endpoint → Permission Mapping
+
+| Method | Endpoint | Required Permission |
+|---|---|---|
+| `GET` | `/users/me` | `profile:read:own` |
+| `GET` | `/admin/users` | `profile:read:all` |
+| `GET` | `/admin/users/{id}` | `profile:read:all` |
+| `PATCH` | `/admin/users/{id}/status` | `profile:write:all` |
+| `POST` | `/admin/users/{id}/roles` | `profile:write:all` |
+| `DELETE` | `/admin/users/{id}/roles/{roleId}` | `profile:write:all` |
+| `GET` | `/admin/roles` | `role:manage` |
+| `POST` | `/admin/roles` | `role:manage` |
+| `DELETE` | `/admin/roles/{id}` | `role:manage` |
+| `POST` | `/admin/roles/{id}/permissions` | `role:manage` |
+| `DELETE` | `/admin/roles/{id}/permissions/{permId}` | `role:manage` |
+| `GET` | `/admin/permissions` | `permission:manage` |
+| `POST` | `/admin/permissions` | `permission:manage` |
+| `DELETE` | `/admin/permissions/{id}` | `permission:manage` |
+
+Authorization is enforced per-endpoint via `@PreAuthorize("hasAuthority('...')")` — no blanket URL rules in `SecurityConfig`.
+
 ### Account Lifecycle
+
 | Status | Meaning |
 |---|---|
 | `ACTIVE` | Normal, fully operational |
 | `LOCKED` | Auto-locked after too many failed login attempts |
 | `DISABLED` | Manually disabled by an admin |
 
-### Admin API _(planned)_
-Full RBAC management behind `ADMIN_PANEL` permission:
-- Manage users, roles, and permissions
-- Lock / unlock / disable accounts
-- Assign or revoke roles from users
+### Admin API
+
+Full RBAC management — all endpoints require an `admin` role:
+
+| Group | Endpoints | Description |
+|---|---|---|
+| User management | `GET /admin/users`, `GET /admin/users/{id}` | List and view user profiles with pagination |
+| Account control | `PATCH /admin/users/{id}/status` | Lock, disable, or re-activate accounts |
+| Role assignment | `POST/DELETE /admin/users/{id}/roles` | Assign or remove roles from a user |
+| Role management | `GET/POST/DELETE /admin/roles` | Create, list, and delete roles |
+| Permission assignment | `POST/DELETE /admin/roles/{id}/permissions` | Assign or remove permissions from a role |
+| Permission management | `GET/POST/DELETE /admin/permissions` | Create, list, and delete permissions |
 
 ---
 
@@ -103,7 +168,7 @@ All endpoints return a consistent envelope:
 {
   "code": "AUTH-002-200",
   "message": "Login successful",
-  "data": { ... },
+  "data": {},
   "isSuccess": true,
   "timestamp": "2026-04-05T10:00:00"
 }
@@ -159,23 +224,41 @@ The service starts on `http://localhost:8080` with context path `/api/v1/auth`.
 
 ```
 src/main/java/.../authservice/
-├── config/          # SecurityConfig, JwtConfig, RedisConfig
-├── controller/      # AuthController, UserController
-├── service/         # AuthService, JwtService, RedisService, UserService, UserDetailsServiceImpl, AuthClaims
+├── config/          # SecurityConfig, JwtConfig, RedisConfig, I18nConfig
+├── controller/      # AuthController, UserController, AdminController
+├── service/         # AuthService, JwtService, RedisService, UserService, AdminService
+│                    # UserDetailsServiceImpl, MessageResolver, AuthClaims
 ├── filter/          # JwtAuthenticationFilter, RequestLoggingFilter
 ├── handler/         # GlobalExceptionHandler
 ├── entity/          # User, Role, Permission, BaseEntity, AuthUserDetails
-├── repository/      # UserRepository, RoleRepository
-├── dto/
-│   ├── request/     # LoginRequestDTO, RegisterRequestDTO, RefreshTokenRequestDTO, LogoutRequestDTO
-│   └── response/    # LoginResponseDTO, UserProfileResponseDTO
+├── repository/      # UserRepository, RoleRepository, PermissionRepository
 ├── mapper/          # UserMapper
-├── enumeration/     # UserStatus, ResponseCode, AccountPolicy, RoleEnum
-└── exception/       # AuthException, InvalidTokenException, RevokedTokenException, UserNotFoundException, ...
+├── dto/
+│   ├── APIResponse.java     # Unified response envelope
+│   ├── request/     # LoginRequestDTO, RegisterRequestDTO, RefreshTokenRequestDTO,
+│   │                # LogoutRequestDTO, CreateRoleRequestDTO, CreatePermissionRequestDTO,
+│   │                # AssignRolesRequestDTO, AssignPermissionsRequestDTO,
+│   │                # UpdateUserStatusRequestDTO, PageRequests
+│   └── response/    # LoginResponseDTO, UserProfileResponseDTO, RoleResponseDTO,
+│                    # RoleSummaryResponseDTO, PermissionResponseDTO, PageResponseDTO
+├── enumeration/     # UserStatus, ResponseCode, RoleEnum, AccountPolicy
+└── exception/       # AuthException, UserNotFoundException, RoleNotFoundException,
+                     # PermissionNotFoundException, InvalidTokenException, RevokedTokenException
+                     # (duplicate-conflict cases — username/email/role/permission — are translated
+                     #  centrally from DataIntegrityViolationException in GlobalExceptionHandler,
+                     #  so no per-case "AlreadyExists" exception classes are needed)
 
 src/main/resources/
-├── db/migration/    # Flyway SQL (V1 → schema, V2 → mappings, V3 → FKs, V4 → indexes, V5 → seed, V6 → soft-delete indexes)
-└── auth.yml         # Application config (all secrets via env vars)
+├── db/migration/    # V1 schema · V2 mappings · V3 FKs · V4 indexes
+│                    # V5 seed roles/permissions · V6 soft-delete indexes
+│                    # V7 default admin user · V8 rename permissions (resource:action:scope)
+│                    # V9 add descriptions to role/permission
+│                    # V10 partial unique indexes for soft-delete
+│                    # V11 created_at indexes for pagination
+├── messages.properties     # i18n — English (default)
+├── messages_vi.properties  # i18n — Vietnamese
+├── auth.yml                # Application config — production (all secrets via env vars)
+└── auth-dev.yml            # Application config — local development
 
 docker/
 ├── Dockerfile
@@ -234,8 +317,12 @@ Intentionally excluded to keep the service focused:
 - [x] Phase 1 — Foundation & configuration
 - [x] Phase 2 — Register + Login
 - [x] Phase 3 — Token lifecycle (refresh, logout, logout-all)
-- [ ] Phase 4 — User & Admin APIs (GET /users/me done)
-- [ ] Phase 5 — Security hardening (brute-force, audit log, password reset)
+- [x] Phase 4 — User & Admin APIs
+  - [x] `GET /users/me` — authenticated user profile
+  - [x] i18n — `Accept-Language`-driven localization for all response messages and validation errors (EN / VI)
+  - [x] Admin endpoints — user management, RBAC management (roles, permissions)
+  - [x] Per-endpoint RBAC via `@PreAuthorize` with `resource:action:scope` permission naming
+- [ ] Phase 5 — Security hardening (brute-force protection, audit log, change password, forgot/reset password)
 - [ ] Phase 6 — Swagger / OpenAPI documentation
 - [ ] Phase 7 — Test suite (unit + integration with Testcontainers)
 - [ ] Phase 8 — Final polish & K8s manifests

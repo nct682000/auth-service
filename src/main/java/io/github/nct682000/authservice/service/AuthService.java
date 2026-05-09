@@ -14,12 +14,10 @@ import io.github.nct682000.authservice.enumeration.AccountPolicy;
 import io.github.nct682000.authservice.enumeration.RoleEnum;
 import io.github.nct682000.authservice.enumeration.UserStatus;
 import io.github.nct682000.authservice.exception.AuthException;
-import io.github.nct682000.authservice.exception.EmailAlreadyExistsException;
 import io.github.nct682000.authservice.exception.InvalidTokenException;
 import io.github.nct682000.authservice.exception.RevokedTokenException;
 import io.github.nct682000.authservice.exception.RoleNotFoundException;
 import io.github.nct682000.authservice.exception.UserNotFoundException;
-import io.github.nct682000.authservice.exception.UsernameAlreadyExistsException;
 import io.github.nct682000.authservice.mapper.UserMapper;
 import io.github.nct682000.authservice.repository.RoleRepository;
 import io.github.nct682000.authservice.repository.UserRepository;
@@ -51,13 +49,6 @@ public class AuthService {
 
     @Transactional
     public UserProfileResponseDTO register(RegisterRequestDTO request) throws AuthException {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new UsernameAlreadyExistsException();
-        }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyExistsException();
-        }
-
         Role defaultRole = roleRepository.findByName(RoleEnum.USER.getName())
                 .orElseThrow(() -> new RoleNotFoundException(RoleEnum.USER.getName()));
 
@@ -112,7 +103,7 @@ public class AuthService {
 
         // Load user from DB (picks up any status/role/version changes)
         User user = userRepository.findById(authClaims.userId())
-                .orElseThrow(UserNotFoundException::new);
+                .orElseThrow(() -> new UserNotFoundException(authClaims.userId().toString()));
 
         AuthUserDetails userDetails = UserMapper.toUserDetails(user);
 

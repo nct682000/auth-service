@@ -1,14 +1,16 @@
 package io.github.nct682000.authservice.enumeration;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+@Getter
 public enum ResponseCode {
 
     // ===== Generic =====
     INTERNAL_SERVER_ERROR("AUTH-000-500", "auth.error.internal", HttpStatus.INTERNAL_SERVER_ERROR),
     VALIDATION_ERROR("AUTH-001-400", "auth.error.validation", HttpStatus.BAD_REQUEST),
 
-    // ===== Auth — success =====
+    // ===== Auth - success =====
     LOGIN_SUCCESS("AUTH-002-200", "auth.success.login", HttpStatus.OK),
     REGISTER_SUCCESS("AUTH-003-201", "auth.success.register", HttpStatus.CREATED),
     LOGOUT_SUCCESS("AUTH-004-200", "auth.success.logout", HttpStatus.OK),
@@ -18,7 +20,7 @@ public enum ResponseCode {
     PASSWORD_RESET_SUCCESS("AUTH-008-200", "auth.success.password.reset", HttpStatus.OK),
     GET_PROFILE_SUCCESS("AUTH-025-200", "auth.success.profile.get", HttpStatus.OK),
 
-    // ===== Auth — failure =====
+    // ===== Auth - failure =====
     INVALID_CREDENTIALS("AUTH-009-401", "auth.error.invalid.credentials", HttpStatus.UNAUTHORIZED),
     ACCOUNT_LOCKED("AUTH-010-423", "auth.error.account.locked", HttpStatus.LOCKED),
     ACCOUNT_DISABLED("AUTH-011-403", "auth.error.account.disabled", HttpStatus.FORBIDDEN),
@@ -45,6 +47,24 @@ public enum ResponseCode {
 
     // ===== Rate limiting =====
     RATE_LIMIT_EXCEEDED("AUTH-024-429", "auth.error.rate.limit", HttpStatus.TOO_MANY_REQUESTS),
+
+    // ===== Admin - user management =====
+    USER_STATUS_UPDATED("AUTH-026-200", "auth.success.admin.user.status.updated", HttpStatus.OK),
+    ROLE_ASSIGNED("AUTH-027-200", "auth.success.admin.role.assigned", HttpStatus.OK),
+    ROLE_REMOVED("AUTH-028-200", "auth.success.admin.role.removed", HttpStatus.OK),
+
+    // ===== Admin - role management =====
+    ROLE_CREATED("AUTH-029-201", "auth.success.admin.role.created", HttpStatus.CREATED),
+    ROLE_DELETED("AUTH-030-200", "auth.success.admin.role.deleted", HttpStatus.OK),
+    ROLE_ALREADY_EXISTS("AUTH-031-409", "auth.error.admin.role.exists", HttpStatus.CONFLICT),
+    PERMISSION_ASSIGNED("AUTH-032-200", "auth.success.admin.permission.assigned", HttpStatus.OK),
+    PERMISSION_REMOVED("AUTH-033-200", "auth.success.admin.permission.removed", HttpStatus.OK),
+
+    // ===== Admin - permission management =====
+    PERMISSION_CREATED("AUTH-034-201", "auth.success.admin.permission.created", HttpStatus.CREATED),
+    PERMISSION_DELETED("AUTH-035-200", "auth.success.admin.permission.deleted", HttpStatus.OK),
+    PERMISSION_ALREADY_EXISTS("AUTH-036-409", "auth.error.admin.permission.exists", HttpStatus.CONFLICT),
+    PERMISSION_NOT_FOUND("AUTH-037-404", "auth.error.admin.permission.not.found", HttpStatus.NOT_FOUND),
     ;
 
     private final String code;
@@ -57,15 +77,4 @@ public enum ResponseCode {
         this.httpStatus = httpStatus;
     }
 
-    public String getCode() {
-        return code;
-    }
-
-    public String getMessageKey() {
-        return messageKey;
-    }
-
-    public HttpStatus getHttpStatus() {
-        return httpStatus;
-    }
 }

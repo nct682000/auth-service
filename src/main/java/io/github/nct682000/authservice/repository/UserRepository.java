@@ -12,8 +12,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
-    boolean existsByUsername(String username);
-    boolean existsByEmail(String email);
 
     @Modifying
     @Query("UPDATE User u SET u.tokenVersion = u.tokenVersion + 1 WHERE u.id = :userId")

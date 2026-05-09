@@ -45,42 +45,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Parse once — signature verified exactly one time for this request
         AuthClaims authClaims = jwtService.parseToken(authHeader.substring(7)).orElse(null);
         if (ObjectUtils.isEmpty(authClaims)) {
-            log.info("Authentication failed — token is malformed, expired, or has an invalid signature");
+            log.info(
+                    "Authentication failed — token is malformed, expired, or has an invalid signature");
             filterChain.doFilter(request, response);
             return;
         }
 
         log.info("Token parsed successfully for user: {}", authClaims.username());
 
-        if (!ObjectUtils.isEmpty(authClaims.username()) && ObjectUtils.isEmpty(SecurityContextHolder.getContext().getAuthentication())) {
+        if (!ObjectUtils.isEmpty(authClaims.username()) && ObjectUtils.isEmpty(
+                SecurityContextHolder.getContext().getAuthentication())) {
             UserDetails user = userDetailsService.loadUserByUsername(authClaims.username());
 
             if (!user.isEnabled()) {
-                log.info("Authentication failed — account is disabled for user: {}", authClaims.username());
+                log.info("Authentication failed — account is disabled for user: {}",
+                        authClaims.username());
                 filterChain.doFilter(request, response);
                 return;
             }
 
             if (!user.isAccountNonLocked()) {
-                log.info("Authentication failed — account is locked for user: {}", authClaims.username());
+                log.info("Authentication failed — account is locked for user: {}",
+                        authClaims.username());
                 filterChain.doFilter(request, response);
                 return;
             }
 
             if (!user.isAccountNonExpired()) {
-                log.info("Authentication failed — account has expired for user: {}", authClaims.username());
+                log.info("Authentication failed — account has expired for user: {}",
+                        authClaims.username());
                 filterChain.doFilter(request, response);
                 return;
             }
 
             if (!user.isCredentialsNonExpired()) {
-                log.info("Authentication failed — credentials have expired for user: {}", authClaims.username());
+                log.info("Authentication failed — credentials have expired for user: {}",
+                        authClaims.username());
                 filterChain.doFilter(request, response);
                 return;
             }
 
             if (!jwtService.isTokenValid(authClaims, user)) {
-                log.info("Authentication failed — token validation failed for user: {}", authClaims.username());
+                log.info("Authentication failed — token validation failed for user: {}",
+                        authClaims.username());
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -90,7 +97,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Integer dbVersion = ((AuthUserDetails) user).getTokenVersion();
             if (ObjectUtils.isEmpty(authClaims.tokenVersion())
                     || !authClaims.tokenVersion().equals(dbVersion)) {
-                log.info("Authentication failed — token version mismatch for user: {} (token={}, db={})",
+                log.info(
+                        "Authentication failed — token version mismatch for user: {} (token={}, db={})",
                         authClaims.username(), authClaims.tokenVersion(), dbVersion);
                 filterChain.doFilter(request, response);
                 return;

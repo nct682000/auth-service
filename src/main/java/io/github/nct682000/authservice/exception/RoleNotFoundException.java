@@ -4,7 +4,7 @@ import io.github.nct682000.authservice.enumeration.ResponseCode;
 
 public class RoleNotFoundException extends AuthException {
 
-    public RoleNotFoundException(String roleName) {
-        super(ResponseCode.ROLE_NOT_FOUND, "Required role not found: " + roleName);
+    public RoleNotFoundException(String identifier) {
+        super(ResponseCode.ROLE_NOT_FOUND, "Required role not found: " + identifier);
     }
 }

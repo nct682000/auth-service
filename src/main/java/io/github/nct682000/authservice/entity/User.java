@@ -17,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
@@ -49,6 +50,7 @@ public class User extends BaseEntity {
     private LocalDateTime credentialsExpiredAt;
 
     @ManyToMany(fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
     @JoinTable(
             name = "user_role",
             joinColumns = @JoinColumn(name = "user_id"),

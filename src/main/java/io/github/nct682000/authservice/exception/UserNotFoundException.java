@@ -4,7 +4,7 @@ import io.github.nct682000.authservice.enumeration.ResponseCode;
 
 public class UserNotFoundException extends AuthException {
 
-    public UserNotFoundException() {
-        super(ResponseCode.USER_NOT_FOUND);
+    public UserNotFoundException(String identifier) {
+        super(ResponseCode.USER_NOT_FOUND, "User not found: " + identifier);
     }
 }

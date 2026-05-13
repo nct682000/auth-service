@@ -1,10 +1,13 @@
 package io.github.nct682000.authservice.controller;
 
 import io.github.nct682000.authservice.dto.APIResponse;
+import io.github.nct682000.authservice.dto.request.ChangePasswordRequestDTO;
+import io.github.nct682000.authservice.dto.request.ForgotPasswordRequestDTO;
 import io.github.nct682000.authservice.dto.request.LoginRequestDTO;
 import io.github.nct682000.authservice.dto.request.LogoutRequestDTO;
 import io.github.nct682000.authservice.dto.request.RefreshTokenRequestDTO;
 import io.github.nct682000.authservice.dto.request.RegisterRequestDTO;
+import io.github.nct682000.authservice.dto.request.ResetPasswordRequestDTO;
 import io.github.nct682000.authservice.dto.response.LoginResponseDTO;
 import io.github.nct682000.authservice.dto.response.UserProfileResponseDTO;
 import io.github.nct682000.authservice.entity.AuthUserDetails;
@@ -17,8 +20,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -100,6 +105,52 @@ public class AuthController {
                 APIResponse.<Void>builder()
                         .code(ResponseCode.LOGOUT_SUCCESS.getCode())
                         .message(messageResolver.resolve(ResponseCode.LOGOUT_SUCCESS))
+                        .isSuccess(true)
+                        .build());
+    }
+
+    @PutMapping("/change-password")
+    @PreAuthorize("hasAuthority('profile:write:own')")
+    public ResponseEntity<APIResponse<Void>> changePassword(
+            @Valid @RequestBody ChangePasswordRequestDTO request,
+            @AuthenticationPrincipal AuthUserDetails currentUser) throws AuthException {
+
+        authService.changePassword(currentUser, request);
+
+        return ResponseEntity.ok(
+                APIResponse.<Void>builder()
+                        .code(ResponseCode.PASSWORD_CHANGED.getCode())
+                        .message(messageResolver.resolve(ResponseCode.PASSWORD_CHANGED))
+                        .isSuccess(true)
+                        .build());
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<APIResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequestDTO request) {
+
+        authService.forgotPassword(request);
+
+        // Always return 200 — even when the email is unknown — to prevent
+        // email enumeration. The actual delivery state is hidden from the caller.
+        return ResponseEntity.ok(
+                APIResponse.<Void>builder()
+                        .code(ResponseCode.PASSWORD_RESET_OTP_SENT.getCode())
+                        .message(messageResolver.resolve(ResponseCode.PASSWORD_RESET_OTP_SENT))
+                        .isSuccess(true)
+                        .build());
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<APIResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequestDTO request) throws AuthException {
+
+        authService.resetPassword(request);
+
+        return ResponseEntity.ok(
+                APIResponse.<Void>builder()
+                        .code(ResponseCode.PASSWORD_RESET_SUCCESS.getCode())
+                        .message(messageResolver.resolve(ResponseCode.PASSWORD_RESET_SUCCESS))
                         .isSuccess(true)
                         .build());
     }

@@ -37,9 +37,9 @@ Most auth implementations either cut corners on security or over-engineer to the
 | `POST /logout` | Revoke current session's refresh token from Redis |
 | `POST /logout-all` | Bump `token_version` — invalidates every active session across all devices |
 | `POST /refresh` | Exchange refresh token for a new access token (with rotation) |
-| `PUT /change-password` | _(planned)_ Requires current password — bumps token version on success |
-| `POST /forgot-password` | _(planned)_ Generates a short-lived OTP, sends via email |
-| `POST /reset-password` | _(planned)_ Validates OTP, sets new password, invalidates all sessions |
+| `PUT /change-password` | Requires current password — bumps `token_version` on success (revokes every session) |
+| `POST /forgot-password` | Issues a 6-digit OTP keyed by email, BCrypt-hashed in Redis with a 10-min TTL. Always returns 200 to prevent email enumeration |
+| `POST /reset-password` | Validates the OTP (single-use), sets the new password, invalidates all sessions |
 
 ### User API
 | Endpoint | Auth | Description |
@@ -96,6 +96,7 @@ All permissions follow the `resource:action:scope` format:
 | Method | Endpoint | Required Permission |
 |---|---|---|
 | `GET` | `/users/me` | `profile:read:own` |
+| `PUT` | `/change-password` | `profile:write:own` |
 | `GET` | `/admin/users` | `profile:read:all` |
 | `GET` | `/admin/users/{id}` | `profile:read:all` |
 | `PATCH` | `/admin/users/{id}/status` | `profile:write:all` |
@@ -142,15 +143,34 @@ Full RBAC management — all endpoints require an `admin` role:
 - **Refresh token** — long-lived (7 days), stored in Redis with TTL, revoked on logout
 - **Token versioning** — `token_version` is embedded in every access token. Bumping the version (on logout-all or password change) immediately invalidates all existing tokens, without a blocklist
 
-### Brute-Force Protection _(planned)_
-- Failed login attempts tracked in Redis per username with a rolling TTL window
-- Account auto-locked after a configurable threshold (default: 5 attempts / 15 min)
-- Configurable via `application.yml` — no code changes required
+### Brute-Force Protection
+- Failed login attempts tracked in Redis (`login_attempts:{username}`) via atomic `INCR` with a rolling TTL window
+- Account auto-locked after a configurable threshold (default: 5 attempts / 15 min) — sets `status=LOCKED` and `locked_until` on the user row
+- **Time-based auto-unlock** — at the next login attempt past `locked_until`, the account auto-unlocks. No scheduled job required, identical UX to admin-driven unlock from the user's perspective
+- Pre-check happens **before** BCrypt to avoid CPU exhaustion on locked accounts
+- The triggering attempt still returns 401 `INVALID_CREDENTIALS`, not 423 `ACCOUNT_LOCKED` — leaking lockout on the trigger attempt would help an attacker enumerate the threshold
+- Tunable via `auth.security.max-login-attempts` and `auth.security.lockout-window` (no code change, K8s ConfigMap-friendly)
 
 ### Password Handling
 - BCrypt with cost factor 12 — ~400ms per hash, infeasible to brute-force at scale
 - Passwords are never stored, logged, or returned in any response
 - OTPs are BCrypt-hashed before storage in Redis and are single-use
+
+### Email Delivery (Forgot-Password OTP)
+
+Outbound mail goes through a small `MailSender` interface so the implementation can be swapped without touching business logic. Two implementations ship today, selected at runtime via `auth.mail.provider`:
+
+| Provider value | Active bean | Use case |
+|---|---|---|
+| `resend` (prod default) | `ResendMailSender` | HTTPS API key — easiest setup. Free 100/day. Calls `POST https://api.resend.com/emails` via Spring 6 `RestClient`. |
+| `logging` | `LoggingMailSender` | Local dev — writes the OTP to the application log. No external credentials required. |
+
+**Resend setup:**
+
+1. Sign up at [resend.com](https://resend.com).
+2. Visit [resend.com/api-keys](https://resend.com/api-keys) and create a new API key. Copy the `re_xxxxxxxxxxxxxxxx` value.
+3. Set `RESEND_API_KEY=re_xxx` and `AUTH_MAIL_PROVIDER=resend`.
+4. Sandbox mode (`AUTH_MAIL_FROM_ADDRESS=onboarding@resend.dev`) only delivers to the email you registered your Resend account with — perfect for local testing. For real users, verify a domain at [resend.com/domains](https://resend.com/domains) and switch `AUTH_MAIL_FROM_ADDRESS` to `noreply@your-domain.com`.
 
 ### Audit Logging _(planned)_
 Every security event (login success/failure, logout, password change, token refresh) is logged with timestamp, IP address, and user agent — async, to never add latency to the request path.
@@ -255,6 +275,7 @@ src/main/resources/
 │                    # V9 add descriptions to role/permission
 │                    # V10 partial unique indexes for soft-delete
 │                    # V11 created_at indexes for pagination
+│                    # V12 locked_until column (brute-force lockout)
 ├── messages.properties     # i18n — English (default)
 ├── messages_vi.properties  # i18n — Vietnamese
 ├── auth.yml                # Application config — production (all secrets via env vars)
@@ -286,6 +307,13 @@ All sensitive values are injected via environment variables — no secrets in th
 | `JWT_SECRET` | HS256 signing key (min 32 chars) | Secret |
 | `JWT_ACCESS_EXPIRATION` | Access token TTL in ms (default: 900000) | ConfigMap |
 | `JWT_REFRESH_EXPIRATION` | Refresh token TTL in ms (default: 604800000) | ConfigMap |
+| `AUTH_MAX_LOGIN_ATTEMPTS` | Failed-login threshold before lockout (default: 5) | ConfigMap |
+| `AUTH_LOCKOUT_WINDOW` | Lockout duration & rolling failure window (default: `15m`) | ConfigMap |
+| `AUTH_OTP_TTL` | Password-reset OTP validity (default: `10m`) | ConfigMap |
+| `AUTH_MAIL_PROVIDER` | `resend` (HTTP API, default) · `logging` (log only, dev) | ConfigMap |
+| `AUTH_MAIL_FROM_ADDRESS` | Display "From" address (default: `onboarding@resend.dev`) | ConfigMap |
+| `AUTH_MAIL_FROM_NAME` | Display "From" name (default: `Auth Service`) | ConfigMap |
+| `RESEND_API_KEY` | Resend API key (`re_xxx`) — required when `AUTH_MAIL_PROVIDER=resend` | Secret |
 
 The `Source` column maps directly to Kubernetes `Secret` and `ConfigMap` objects for production deployment.
 
@@ -322,7 +350,11 @@ Intentionally excluded to keep the service focused:
   - [x] i18n — `Accept-Language`-driven localization for all response messages and validation errors (EN / VI)
   - [x] Admin endpoints — user management, RBAC management (roles, permissions)
   - [x] Per-endpoint RBAC via `@PreAuthorize` with `resource:action:scope` permission naming
-- [ ] Phase 5 — Security hardening (brute-force protection, audit log, change password, forgot/reset password)
+- [x] Phase 5 — Security hardening
+  - [x] Brute-force protection with time-based auto-unlock
+  - [x] `PUT /change-password` — bumps `token_version` to revoke every session on success
+  - [x] `POST /forgot-password` + `POST /reset-password` — 6-digit OTP, BCrypt-hashed in Redis, 10-min TTL, single-use
+  - [ ] _(deferred)_ Audit log — out of scope for this phase; revisit in Phase 6+
 - [ ] Phase 6 — Swagger / OpenAPI documentation
 - [ ] Phase 7 — Test suite (unit + integration with Testcontainers)
 - [ ] Phase 8 — Final polish & K8s manifests

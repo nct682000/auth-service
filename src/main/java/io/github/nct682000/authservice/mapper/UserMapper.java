@@ -22,7 +22,8 @@ public class UserMapper {
                 user.getStatus(),
                 user.getTokenVersion(),
                 user.getAccountExpiredAt(),
-                user.getCredentialsExpiredAt()
+                user.getCredentialsExpiredAt(),
+                user.getLockedUntil()
         );
     }
 }

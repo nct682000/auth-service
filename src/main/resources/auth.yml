@@ -50,6 +50,21 @@ auth:
     access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}        # K8s ConfigMap (default: 15m)
     refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}   # K8s ConfigMap (default: 7d)
 
+  security:
+    max-login-attempts: ${AUTH_MAX_LOGIN_ATTEMPTS:5}                # K8s ConfigMap
+    lockout-window: ${AUTH_LOCKOUT_WINDOW:15m}                      # K8s ConfigMap (e.g., 15m, 1h, PT15M)
+    otp-ttl: ${AUTH_OTP_TTL:10m}                                    # K8s ConfigMap — password-reset OTP validity
+
+  mail:
+    # resend  → ResendMailSender   (HTTP API — production default)
+    # logging → LoggingMailSender  (writes OTP to logs; safe local fallback)
+    provider: ${AUTH_MAIL_PROVIDER:resend}                          # K8s ConfigMap
+    from-address: ${AUTH_MAIL_FROM_ADDRESS:onboarding@resend.dev}   # K8s ConfigMap
+    from-name: ${AUTH_MAIL_FROM_NAME:Auth Service}                  # K8s ConfigMap
+
+    resend:
+      api-key: ${RESEND_API_KEY:}                                   # K8s Secret — re_xxxxxxxxxxxxxx
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-no-trace}] %-5level %-40.40logger{39} : %msg%n"

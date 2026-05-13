@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
 
+    Optional<User> findByEmail(String email);
+
     @Modifying
     @Query("UPDATE User u SET u.tokenVersion = u.tokenVersion + 1 WHERE u.id = :userId")
     void incrementTokenVersion(@Param("userId") UUID userId);

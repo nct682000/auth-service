@@ -22,15 +22,19 @@ public class AuthUserDetails implements UserDetails {
     private Integer tokenVersion;
     private LocalDateTime accountExpiredAt;
     private LocalDateTime credentialsExpiredAt;
+    private LocalDateTime lockedUntil;
 
     @Override
     public boolean isAccountNonLocked() {
-        return status != UserStatus.LOCKED;
+        if (status != UserStatus.LOCKED) {
+            return true;
+        }
+        return !ObjectUtils.isEmpty(lockedUntil) && lockedUntil.isBefore(LocalDateTime.now());
     }
 
     @Override
     public boolean isEnabled() {
-        return status == UserStatus.ACTIVE;
+        return status != UserStatus.DISABLED;
     }
 
     @Override

@@ -45,6 +45,10 @@ public enum ResponseCode {
     OTP_INVALID("AUTH-022-400", "auth.error.otp.invalid", HttpStatus.BAD_REQUEST),
     OTP_EXPIRED("AUTH-023-400", "auth.error.otp.expired", HttpStatus.BAD_REQUEST),
 
+    // ===== Password lifecycle =====
+    PASSWORD_CONFIRMATION_MISMATCH("AUTH-038-400", "auth.error.password.confirmation.mismatch", HttpStatus.BAD_REQUEST),
+    PASSWORD_SAME_AS_CURRENT("AUTH-039-400", "auth.error.password.same.as.current", HttpStatus.BAD_REQUEST),
+
     // ===== Rate limiting =====
     RATE_LIMIT_EXCEEDED("AUTH-024-429", "auth.error.rate.limit", HttpStatus.TOO_MANY_REQUESTS),
 

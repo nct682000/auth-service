@@ -49,6 +49,9 @@ public class User extends BaseEntity {
     @Column(name = "credentials_expired_at")
     private LocalDateTime credentialsExpiredAt;
 
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @BatchSize(size = 100)
     @JoinTable(
